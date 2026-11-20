@@ -1,0 +1,79 @@
+[
+  {
+    "id": "example-brand",
+    "example": true,
+    "title": "Brand logo concepts",
+    "category": "Design",
+    "description": "Logo explorations for a side project. Three rounds of colour and sizing changes.",
+    "versions": [
+      {
+        "label": "v1",
+        "date": "2026-09-04",
+        "file": "files/example-brand/logo-v1.svg",
+        "note": "First sketch, blue mark"
+      },
+      {
+        "label": "v2",
+        "date": "2026-09-18",
+        "file": "files/example-brand/logo-v2.svg",
+        "note": "Switched to green, larger mark"
+      },
+      {
+        "label": "v3",
+        "date": "2026-10-02",
+        "file": "files/example-brand/logo-v3.svg",
+        "note": "Final orange version"
+      }
+    ],
+    "firstDate": "2026-09-04",
+    "status": "Done",
+    "tags": [],
+    "links": {}
+  },
+  {
+    "id": "example-notes",
+    "example": true,
+    "title": "Onboarding research notes",
+    "category": "Research",
+    "description": "Notes from user interviews about the signup flow.",
+    "versions": [
+      {
+        "label": "v1",
+        "date": "2026-10-11",
+        "file": "files/example-notes/notes-v1.md",
+        "note": "First 5 interviews"
+      },
+      {
+        "label": "v2",
+        "date": "2026-10-25",
+        "file": "files/example-notes/notes-v2.md",
+        "note": "Added prototype test results"
+      }
+    ],
+    "firstDate": "2026-10-11",
+    "status": "Done",
+    "tags": [],
+    "links": {
+      
+    }
+  },
+  {
+    "id": "example-script",
+    "example": true,
+    "title": "Export cleanup script",
+    "category": "Code",
+    "description": "Small Python script that sorts exported files into dated folders.",
+    "versions": [
+      {
+        "label": "v1",
+        "date": "2026-11-14",
+        "file": "files/example-script/cleanup.py",
+        "note": "Initial version"
+      }
+    ],
+    "firstDate": "2026-11-14",
+    "status": "In progress",
+    "tags": [],
+    "links": {}
+  }
+]

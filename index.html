@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work Timeline</title>
+<style>
+/* Layout: one centre spine; month markers sit on it, work cards alternate left/right and pop in on scroll. Light theme only, Helvetica throughout. */
+:root {
+  --paper: #F5F6F8;
+  --surface: #FFFFFF;
+  --ink: #16181D;
+  --muted: #5E6472;
+  --line: #DADDE4;
+  --accent: #2747D9;
+  --accent-soft: #E6EBFC;
+  --good: #1B7F4B; --good-soft: #E2F4EA;
+  --warn: #8A5A00; --warn-soft: #FFF1D6;
+  --bad: #B42318;
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+/* ---------- header ---------- */
+header { max-width: 1080px; margin: 0 auto; padding: 44px 20px 20px; display: grid; gap: 18px; }
+.top { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; justify-content: space-between; }
+h1 { font-weight: 700; font-size: clamp(36px, 6vw, 56px); line-height: 1; margin: 0; letter-spacing: -0.035em; }
+.top-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--muted); font-size: 15px; }
+.stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { font: 500 14px var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.chip:hover { border-color: var(--ink); }
+.sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.search { margin-left: auto; font: 400 15px var(--font); padding: 7px 14px; min-width: 220px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font: 600 14px var(--font); padding: 9px 16px; border-radius: 10px; border: 1px solid var(--ink); background: var(--ink); color: var(--surface); cursor: pointer; white-space: nowrap; }
+.btn:hover { opacity: .9; }
+.btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { border-color: var(--ink); opacity: 1; }
+.btn.accent { background: var(--accent); border-color: var(--accent); }
+.btn.danger { background: var(--surface); color: var(--bad); border-color: #F1C4C0; }
+.btn.small { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+.btn[disabled] { opacity: .5; cursor: progress; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #B9BEC9; }
+.conn-dot.on { background: var(--good); }
+
+/* ---------- floating date ---------- */
+.nowdate { position: fixed; top: 16px; right: 16px; z-index: 5; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; box-shadow: 0 6px 20px rgba(22,24,29,.08); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; transition: opacity .2s; }
+.nowdate small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.nowdate.hidden { opacity: 0; pointer-events: none; }
+
+/* ---------- timeline ---------- */
+main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 40vh; position: relative; }
+.spine { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--line); transform: translateX(-1px); }
+.spine::after { content: ""; position: absolute; inset: 0; background: var(--accent); transform-origin: top; }
+@supports (animation-timeline: scroll()) {
+  .spine::after { animation: grow linear both; animation-timeline: scroll(root); }
+  @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+}
+.month { position: relative; display: flex; justify-content: center; margin: 40px 0 28px; }
+.month span { position: relative; z-index: 1; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 6px 14px; border-radius: 999px; }
+.entry { position: relative; display: grid; grid-template-columns: 1fr 1fr; column-gap: 56px; margin: 0 0 36px; }
+.entry::before { content: ""; position: absolute; left: 50%; top: 26px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); transform: translateX(-50%); z-index: 1; }
+.entry.pinned::before { background: var(--accent); }
+.when { align-self: start; padding-top: 16px; font-variant-numeric: tabular-nums; }
+.when .day { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+.when .rest { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.entry:nth-of-type(odd) .when { grid-column: 1; text-align: right; }
+.entry:nth-of-type(odd) .card { grid-column: 2; grid-row: 1; }
+.entry:nth-of-type(even) .when { grid-column: 2; grid-row: 1; }
+.entry:nth-of-type(even) .card { grid-column: 1; grid-row: 1; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 10px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.card:hover { border-color: var(--accent); box-shadow: 0 10px 28px rgba(39,71,217,.12); }
+.card h2 { font-weight: 700; font-size: 21px; line-height: 1.2; margin: 0; letter-spacing: -0.015em; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.tag.plain { background: var(--paper); color: var(--muted); font-weight: 500; }
+.tag.example { background: #FFF1DB; color: #8A4B00; }
+.tag.s-done { background: var(--good-soft); color: var(--good); }
+.tag.s-progress { background: var(--accent-soft); color: var(--accent); }
+.tag.s-paused { background: var(--warn-soft); color: var(--warn); }
+.tag.s-idea { background: #EEEFF3; color: var(--muted); }
+.tag.pin { background: var(--ink); color: var(--surface); }
+.thumb { border-radius: 8px; border: 1px solid var(--line); overflow: hidden; background: var(--paper); aspect-ratio: 16/9; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+.linkrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.lchip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; text-decoration: none; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+.lchip:hover { border-color: var(--ink); }
+.lchip svg { width: 14px; height: 14px; }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .entry .card, .entry .when { animation: pop linear both; animation-timeline: view(); animation-range: entry 0% cover 28%; }
+    .entry::before { animation: dot linear both; animation-timeline: view(); animation-range: entry 10% cover 30%; }
+    @keyframes pop { from { opacity: .15; transform: translateY(48px) scale(.95); } to { opacity: 1; transform: none; } }
+    @keyframes dot { from { transform: translateX(-50%) scale(0); } to { transform: translateX(-50%) scale(1); } }
+  }
+}
+.empty { text-align: center; color: var(--muted); padding: 60px 20px; position: relative; background: var(--paper); }
+
+@media (max-width: 720px) {
+  .spine { left: 18px; }
+  .entry { grid-template-columns: 1fr; padding-left: 42px; row-gap: 8px; }
+  .entry::before { left: 18px; top: 20px; }
+  .entry:nth-of-type(n) .when { grid-column: 1; grid-row: 1; text-align: left; padding-top: 12px; }
+  .entry:nth-of-type(n) .card { grid-column: 1; grid-row: 2; }
+  .month { justify-content: flex-start; }
+  .search { margin-left: 0; width: 100%; }
+  .sep { display: none; }
+  .nowdate { top: auto; bottom: 16px; }
+}
+
+/* ---------- dialogs ---------- */
+dialog { width: min(880px, calc(100% - 32px)); max-height: calc(100% - 32px); border: 1px solid var(--line); border-radius: 16px; padding: 0; background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px rgba(22,24,29,.25); }
+dialog.narrow { width: min(620px, calc(100% - 32px)); }
+dialog::backdrop { background: rgba(22,24,29,.35); backdrop-filter: blur(3px); }
+.d-head { display: flex; gap: 16px; align-items: start; justify-content: space-between; padding: 22px 24px 0; }
+.d-head h2 { font-weight: 700; font-size: 28px; line-height: 1.15; margin: 0 0 8px; letter-spacing: -0.02em; text-wrap: balance; }
+.close { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; width: 36px; height: 36px; font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink); flex: none; }
+.d-body { padding: 18px 24px 24px; display: grid; gap: 18px; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fact { background: var(--paper); border-radius: 10px; padding: 10px 14px; }
+.fact small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.fact span { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.preview { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--paper); }
+.preview-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface); font-size: 14px; }
+.preview-bar .fname { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.preview img { display: block; max-width: 100%; max-height: 60vh; margin: 0 auto; }
+.preview pre { margin: 0; padding: 16px; max-height: 50vh; overflow: auto; font: 13px/1.6 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.preview .nopreview { padding: 28px 16px; text-align: center; color: var(--muted); display: grid; gap: 12px; justify-items: center; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+.versions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.versions button { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; display: grid; grid-template-columns: 52px 110px 1fr; gap: 12px; align-items: baseline; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+.versions button[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.versions .vl { font-weight: 700; font-size: 14px; }
+.versions .vd { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.versions .vn { font-size: 14px; }
+@media (max-width: 520px) { .versions button { grid-template-columns: 44px 1fr; } .versions .vn { grid-column: 1 / -1; } }
+
+/* forms */
+form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.field { display: grid; gap: 6px; align-content: start; }
+.field input:not([type=file]):not([type=checkbox]), .field select { height: 40px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 13px; font-weight: 600; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea { font: 15px var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; width: 100%; }
+.field textarea { min-height: 84px; resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.field.check { display: flex; align-items: center; gap: 8px; }
+.field.check input { width: auto; }
+.group-title { grid-column: 1 / -1; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.form-foot { grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+.form-foot .msg { margin-right: auto; font-size: 14px; color: var(--bad); }
+@media (max-width: 560px) { form.grid { grid-template-columns: 1fr; } }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+.note { background: var(--paper); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; background: var(--ink); color: var(--surface); padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 500; box-shadow: 0 10px 30px rgba(0,0,0,.2); max-width: calc(100% - 32px); }
+.toast.err { background: var(--bad); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <h1>Work Timeline</h1>
+    <div class="top-actions">
+      <button class="btn ghost" type="button" id="connBtn"><span class="conn-dot" id="connDot"></span><span id="connLabel">Connect GitHub to edit</span></button>
+      <button class="btn accent" type="button" id="addBtn">+ Add work</button>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="controls">
+    <button class="chip" id="sortBtn" type="button" aria-pressed="false">Newest first</button>
+    <span class="sep"></span>
+    <span id="cats" class="controls"></span>
+    <span class="sep"></span>
+    <span id="stats-filter" class="controls"></span>
+    <input class="search" id="search" type="search" placeholder="Search title, notes, tags…" aria-label="Search work">
+  </div>
+</header>
+
+<div class="nowdate hidden" id="nowdate" aria-hidden="true"><small>Scrolling through</small><span id="nowdateText"></span></div>
+
+<main id="timeline"><div class="spine"></div></main>
+
+<!-- detail -->
+<dialog id="detail" aria-labelledby="dTitle">
+  <div class="d-head">
+    <div><h2 id="dTitle"></h2><div class="tags" id="dTags"></div></div>
+    <button class="close" type="button" data-close aria-label="Close">×</button>
+  </div>
+  <div class="d-body">
+    <p id="dDesc" style="margin:0"></p>
+    <div class="facts" id="dFacts"></div>
+    <div class="actions" id="dLinks"></div>
+    <div class="preview">
+      <div class="preview-bar"><span id="pLabel"></span><span class="fname" id="pName"></span></div>
+      <div id="pBody"></div>
+    </div>
+    <div>
+      <h3>All versions</h3>
+      <ul class="versions" id="dVersions"></ul>
+    </div>
+    <div class="actions" id="dEdit"></div>
+  </div>
+</dialog>
+
+<!-- add / edit work -->
+<dialog id="workDlg" class="narrow" aria-labelledby="wTitle">
+  <div class="d-head"><h2 id="wTitle">Add work</h2><button class="close" type="button" data-close aria-label="Close">×</button></div>
+  <div class="d-body">
+    <form class="grid" id="workForm" novalidate>
+      <div class="field full"><label for="fTitle">Title</label><input id="fTitle" required maxlength="120" placeholder="e.g. Flood analysis dashboard"></div>
+      <div class="field"><label for="fDate">First build date</label><input id="fDate" type="date" required></div>
+      <div class="field"><label for="fStatus">Status</label>
+        <select id="fStatus"><option>In progress</option><option>Done</option><option>Paused</option><option>Idea</option></select></div>
+      <div class="field"><label for="fCat">Category</label><input id="fCat" list="catList" placeholder="Design, Code, Research…"><datalist id="catList"></datalist></div>
+      <div class="field"><label for="fTags">Tags</label><input id="fTags" placeholder="comma separated"><span class="hint">e.g. client, GPS, personal</span></div>
+      <div class="field full"><label for="fDesc">Description</label><textarea id="fDesc" placeholder="What is it, and why did you make it?"></textarea></div>
+
+      <div class="group-title">Links</div>
+      <div class="field full"><label for="fChat">Claude chat link</label><input id="fChat" type="url" placeholder="https://claude.ai/chat/…"></div>
+      <div class="field full"><label for="fArtifact">Artifact link</label><input id="fArtifact" type="url" placeholder="https://claude.ai/artifact/… or https://claude.site/…"></div>
+      <div class="field"><label for="fLive">Live site / demo</label><input id="fLive" type="url" placeholder="https://…"></div>
+      <div class="field"><label for="fRepo">Project repo</label><input id="fRepo" type="url" placeholder="https://github.com/…"></div>
+
+      <div class="group-title" id="firstVerTitle">First version</div>
+      <div class="field full" id="fFileWrap"><label for="fFile">File (optional)</label><input id="fFile" type="file"><span class="hint">Images, PDFs, code, docs. Up to 20 MB.</span></div>
+      <div class="field full" id="fNoteWrap"><label for="fNote">Version note</label><input id="fNote" placeholder="e.g. First draft"></div>
+      <div class="field check full"><input id="fPin" type="checkbox"><label for="fPin">Pin as a highlight</label></div>
+
+      <div class="form-foot"><span class="msg" id="wMsg"></span><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn accent" type="submit" id="wSave">Save</button></div>
+    </form>
+  </div>
+</dialog>
+
+<!-- add version -->
+<dialog id="verDlg" class="narrow" aria-labelledby="vTitle">
+  <div class="d-head"><h2 id="vTitle">Add a new version</h2><button class="close" type="button" data-close aria-label="Close">×</button></div>
+  <div class="d-body">
+    <form class="grid" id="verForm" novalidate>
+      <div class="field"><label for="vLabel">Version</label><input id="vLabel" required maxlength="20"></div>
+      <div class="field"><label for="vDate">Date</label><input id="vDate" type="date" required></div>
+      <div class="field full"><label for="vNote">What changed</label><input id="vNote" placeholder="e.g. Added filters and export"></div>
+      <div class="field full"><label for="vFile">File (optional)</label><input id="vFile" type="file"></div>
+      <div class="field full"><label for="vLink">Link for this version (optional)</label><input id="vLink" type="url" placeholder="New artifact link, chat link, or live URL"><span class="hint">Becomes the work's latest artifact link if it's a claude.ai artifact link.</span></div>
+      <div class="form-foot"><span class="msg" id="vMsg"></span><button class="btn ghost" type="button" data-close>Cancel</button><button class="btn accent" type="submit" id="vSave">Save version</button></div>
+    </form>
+  </div>
+</dialog>
+
+<!-- connect -->
+<dialog id="connDlg" class="narrow" aria-labelledby="cTitle">
+  <div class="d-head"><h2 id="cTitle">Connect GitHub</h2><button class="close" type="button" data-close aria-label="Close">×</button></div>
+  <div class="d-body">
+    <p style="margin:0">Your timeline is saved in the <b id="cRepo"></b> repo. Every add or edit becomes a commit, so GitHub keeps the full history. To save from this page, give it a token that can only write to that one repo.</p>
+    <ol class="steps">
+      <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → New fine-grained token</a>.</li>
+      <li>Repository access: <b>Only select repositories</b> → pick <b id="cRepo2"></b>.</li>
+      <li>Permissions → Repository → <b>Contents: Read and write</b>.</li>
+      <li>Generate, copy it, and paste it below.</li>
+    </ol>
+    <form class="grid" id="connForm" novalidate>
+      <div class="field full"><label for="cToken">Token</label><input id="cToken" type="password" autocomplete="off" placeholder="github_pat_…"><span class="hint">Stored only in this browser. Use Disconnect to remove it.</span></div>
+      <div class="form-foot"><span class="msg" id="cMsg"></span><button class="btn danger" type="button" id="cOut" hidden>Disconnect</button><button class="btn accent" type="submit" id="cSave">Connect</button></div>
+    </form>
+  </div>
+</dialog>
+
+<!-- confirm -->
+<dialog id="confirmDlg" class="narrow" aria-labelledby="qTitle">
+  <div class="d-head"><h2 id="qTitle">Delete this work?</h2><button class="close" type="button" data-close aria-label="Close">×</button></div>
+  <div class="d-body">
+    <p style="margin:0" id="qText"></p>
+    <div class="form-foot"><button class="btn ghost" type="button" data-close>Keep it</button><button class="btn danger" type="button" id="qYes">Delete</button></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+/* ---------- config ---------- */
+const OWNER = "manoj7019", REPO = "work-timeline", BRANCH = "main";
+const DATA_PATH = "entries.json";
+const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/`;
+const GH_WEB = `https://github.com/${OWNER}/${REPO}`;
+const TOKEN_KEY = "work-timeline-token";
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const LONG_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const STATUSES = ["In progress","Done","Paused","Idea"];
+const STATUS_CLASS = { "In progress": "s-progress", "Done": "s-done", "Paused": "s-paused", "Idea": "s-idea" };
+const IMG = /\.(png|jpe?g|gif|webp|svg|avif)$/i;
+const TEXT = /\.(md|txt|py|js|mjs|ts|jsx|tsx|json|csv|tsv|html|css|scss|java|kt|c|cpp|h|go|rs|rb|php|sh|yml|yaml|sql|r|xml|toml|ini|swift|dart|vue|svelte)$/i;
+const ICON = {
+  gh: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>',
+  chat: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" stroke-linejoin="round"/></svg>',
+  art: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="1.5"/><path d="M2 5.5h12"/></svg>',
+  live: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/></svg>',
+  repo: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 2.5h8.5v11H3z M3 11h8.5" stroke-linejoin="round"/></svg>',
+  hist: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/></svg>'
+};
+
+let works = [];
+let state = { newestFirst: true, cat: "All", status: "All", q: "" };
+let token = null;
+try { token = localStorage.getItem(TOKEN_KEY); } catch {}
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const parse = d => { const [y,m,dd] = d.split("-").map(Number); return { y, m: m-1, d: dd }; };
+const fmt = d => { if (!d) return ""; const p = parse(d); return `${p.d} ${MONTHS[p.m]} ${p.y}`; };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
+const latest = w => w.versions[w.versions.length - 1];
+const firstDate = w => w.firstDate || (w.versions[0] && w.versions[0].date) || today();
+const slug = s => (s || "work").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "work";
+const cleanName = n => n.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/-+/g, "-");
+const fileUrl = p => p;  // served by GitHub Pages next to this page
+const rawUrl = p => RAW + p.split("/").map(encodeURIComponent).join("/");
+
+function toast(msg, err, ms = 3200) {
+  const t = $("toast"); t.textContent = msg; t.className = "toast" + (err ? " err" : ""); t.hidden = false;
+  clearTimeout(toast._t); if (ms) toast._t = setTimeout(() => t.hidden = true, ms);
+}
+
+function normalize(w) {
+  w.versions = (w.versions || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  w.firstDate = firstDate(w);
+  w.links = w.links || {};
+  w.tags = w.tags || [];
+  w.status = w.status || "In progress";
+  return w;
+}
+
+/* ---------- GitHub storage ---------- */
+const b64encodeText = s => { const bytes = new TextEncoder().encode(s); let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b)); return btoa(bin); };
+const b64decodeText = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, "")), c => c.charCodeAt(0)));
+const fileToB64 = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = () => rej(new Error("Could not read the file.")); r.readAsDataURL(f); });
+
+async function gh(path, opts = {}) {
+  const r = await fetch(API + path, { ...opts, headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, ...(opts.body ? { "Content-Type": "application/json" } : {}) } });
+  if (!r.ok) {
+    let m = ""; try { m = (await r.json()).message || ""; } catch {}
+    const e = new Error(r.status === 401 ? "GitHub rejected the token. Reconnect with a new one."
+      : r.status === 403 || r.status === 404 ? `The token can't write to ${OWNER}/${REPO}. Check it has Contents: Read and write on this repo.`
+      : r.status === 409 || r.status === 422 ? "Someone saved at the same moment. Try again." : `GitHub error ${r.status}${m ? ": " + m : ""}`);
+    e.status = r.status; throw e;
+  }
+  return r.status === 204 ? null : r.json();
+}
+const contentPath = p => "/contents/" + p.split("/").map(encodeURIComponent).join("/");
+
+async function readRemote() {
+  const j = await gh(contentPath(DATA_PATH) + `?ref=${BRANCH}&t=${Date.now()}`);
+  return { sha: j.sha, data: JSON.parse(b64decodeText(j.content)) };
+}
+
+/* Re-reads the latest data, applies the change, and commits it. */
+async function commitChange(message, mutate) {
+  let { sha, data } = await readRemote();
+  data = data.map(normalize);
+  mutate(data);
+  const body = JSON.stringify({ message, branch: BRANCH, sha, content: b64encodeText(JSON.stringify(data, null, 2) + "\n") });
+  await gh(contentPath(DATA_PATH), { method: "PUT", body });
+  works = data; afterDataChange();
+}
+
+async function uploadFile(workId, file) {
+  if (file.size > 20 * 1024 * 1024) throw new Error("That file is over 20 MB. Upload a smaller file or link to it instead.");
+  const path = `files/${workId}/${today()}-${Date.now().toString(36)}-${cleanName(file.name)}`;
+  const content = await fileToB64(file);
+  await gh(contentPath(path), { method: "PUT", body: JSON.stringify({ message: `Upload ${file.name}`, branch: BRANCH, content }) });
+  return path;
+}
+
+/* ---------- load ---------- */
+async function load() {
+  try {
+    if (token) { works = (await readRemote()).data; }
+    else { const r = await fetch(DATA_PATH + "?t=" + Date.now(), { cache: "no-store" }); works = await r.json(); }
+  } catch (e) {
+    try { const r = await fetch(DATA_PATH + "?t=" + Date.now(), { cache: "no-store" }); works = await r.json(); if (token) toast(e.message, true, 6000); }
+    catch { works = []; $("timeline").insertAdjacentHTML("beforeend", '<p class="empty">The work list could not be loaded. Reload the page to try again.</p>'); return; }
+  }
+  works = works.map(normalize);
+  afterDataChange();
+  openFromHash();
+}
+function afterDataChange() { renderStats(); renderFilters(); render(); if (current) { current = works.find(w => w.id === current.id) || null; if (current && $("detail").open) openWork(current.id, true); else if (!current) $("detail").close(); } }
+
+/* ---------- render ---------- */
+function renderStats() {
+  const real = works;
+  const versions = real.reduce((n,w) => n + w.versions.length, 0);
+  const dates = real.map(firstDate).sort();
+  const updates = real.flatMap(w => w.versions.map(v => v.date)).sort();
+  const live = real.filter(w => w.status === "In progress").length;
+  $("stats").innerHTML = real.length ? `
+    <span><b>${real.length}</b> pieces of work</span>
+    <span><b>${versions}</b> versions</span>
+    <span><b>${live}</b> in progress</span>
+    <span>since <b>${fmt(dates[0])}</b></span>
+    ${updates.length ? `<span>last update <b>${fmt(updates[updates.length-1])}</b></span>` : ""}` : "";
+}
+
+function renderFilters() {
+  const cats = ["All", ...[...new Set(works.map(w => w.category).filter(Boolean))].sort()];
+  if (!cats.includes(state.cat)) state.cat = "All";
+  $("cats").innerHTML = cats.map(c => `<button class="chip" type="button" data-cat="${esc(c)}" aria-pressed="${c === state.cat}">${esc(c === "All" ? "All categories" : c)}</button>`).join("");
+  $("cats").querySelectorAll("button").forEach(b => b.onclick = () => { state.cat = b.dataset.cat; renderFilters(); render(); });
+  const sts = ["All", ...STATUSES.filter(s => works.some(w => w.status === s))];
+  $("stats-filter").innerHTML = sts.map(s => `<button class="chip" type="button" data-st="${esc(s)}" aria-pressed="${s === state.status}">${esc(s === "All" ? "Any status" : s)}</button>`).join("");
+  $("stats-filter").querySelectorAll("button").forEach(b => b.onclick = () => { state.status = b.dataset.st; renderFilters(); render(); });
+  $("catList").innerHTML = cats.slice(1).map(c => `<option value="${esc(c)}"></option>`).join("");
+}
+
+function linkChips(w, small) {
+  const L = w.links || {}, out = [];
+  const add = (u, icon, label) => { const s = safeUrl(u); if (s) out.push(`<a class="lchip" href="${esc(s)}" target="_blank" rel="noopener">${ICON[icon]}${label}</a>`); };
+  add(L.chat, "chat", "Claude chat"); add(L.artifact, "art", "Artifact"); add(L.live, "live", "Live"); add(L.repo, "repo", "Repo");
+  return out.length ? `<div class="linkrow">${out.join("")}</div>` : "";
+}
+function tagsHtml(w) {
+  return [
+    w.pinned ? `<span class="tag pin">Pinned</span>` : "",
+    w.category ? `<span class="tag">${esc(w.category)}</span>` : "",
+    w.status ? `<span class="tag ${STATUS_CLASS[w.status] || ""}">${esc(w.status)}</span>` : "",
+    ...w.tags.map(t => `<span class="tag plain">#${esc(t)}</span>`),
+    w.example ? `<span class="tag example">Example</span>` : ""
+  ].join("");
+}
+
+function render() {
+  const main = $("timeline");
+  main.querySelectorAll(".month, .entry, .empty").forEach(n => n.remove());
+  const q = state.q.toLowerCase().trim();
+  let list = works.filter(w =>
+    (state.cat === "All" || w.category === state.cat) &&
+    (state.status === "All" || w.status === state.status) &&
+    (!q || [w.title, w.description, w.category, w.status, ...w.tags, ...w.versions.map(v => v.note)].join(" ").toLowerCase().includes(q)));
+  list.sort((a,b) => firstDate(a).localeCompare(firstDate(b)) * (state.newestFirst ? -1 : 1));
+
+  if (!list.length) {
+    main.insertAdjacentHTML("beforeend", `<p class="empty">${works.length ? "No work matches these filters." : "Nothing here yet. Use “Add work” to put your first piece on the timeline."}</p>`);
+    watchDates(); return;
+  }
+  let lastMonth = ""; const html = [];
+  for (const w of list) {
+    const fd = firstDate(w), l = latest(w), p = parse(fd), mk = `${p.y}-${p.m}`;
+    if (mk !== lastMonth) { html.push(`<div class="month"><span>${LONG_MONTHS[p.m]} ${p.y}</span></div>`); lastMonth = mk; }
+    const thumb = l && l.file && IMG.test(l.file) ? `<div class="thumb"><img src="${esc(fileUrl(l.file))}" data-raw="${esc(rawUrl(l.file))}" alt="" loading="lazy"></div>` : "";
+    html.push(`
+      <section class="entry${w.pinned ? " pinned" : ""}" data-date="${fd}">
+        <div class="when"><div class="day">${p.d} ${MONTHS[p.m]}</div><div class="rest">${p.y} · first build</div></div>
+        <article class="card" tabindex="0" role="button" aria-label="Open ${esc(w.title)}" data-id="${esc(w.id)}">
+          <div class="tags">${tagsHtml(w)}</div>
+          <h2>${esc(w.title)}</h2>
+          ${w.description ? `<p>${esc(w.description)}</p>` : ""}
+          ${thumb}
+          ${linkChips(w)}
+          <div class="meta"><span><b>${w.versions.length}</b> version${w.versions.length === 1 ? "" : "s"}</span>${l ? `<span>latest <b>${esc(l.label)}</b> · ${fmt(l.date)}</span>` : ""}</div>
+        </article>
+      </section>`);
+  }
+  main.insertAdjacentHTML("beforeend", html.join(""));
+  main.querySelectorAll(".card").forEach(c => {
+    c.addEventListener("click", e => { if (!e.target.closest("a")) openWork(c.dataset.id); });
+    c.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target === c) { e.preventDefault(); openWork(c.dataset.id); } });
+  });
+  main.querySelectorAll("img[data-raw]").forEach(img => img.addEventListener("error", () => { if (img.src !== img.dataset.raw) img.src = img.dataset.raw; }, { once: true }));
+  watchDates();
+}
+
+let observer;
+function watchDates() {
+  const badge = $("nowdate"), txt = $("nowdateText");
+  if (observer) observer.disconnect();
+  observer = new IntersectionObserver(items => {
+    const vis = items.filter(i => i.isIntersecting);
+    if (vis.length) { txt.textContent = fmt(vis[0].target.dataset.date); if (window.scrollY >= 120) badge.classList.remove("hidden"); }
+  }, { rootMargin: "-45% 0px -45% 0px" });
+  document.querySelectorAll(".entry").forEach(e => observer.observe(e));
+}
+window.addEventListener("scroll", () => { $("nowdate").classList.toggle("hidden", window.scrollY < 120 || !$("nowdateText").textContent); }, { passive: true });
+
+/* ---------- detail ---------- */
+let current = null;
+function openWork(id, keepVersion) {
+  const w = works.find(x => x.id === id); if (!w) return;
+  current = w;
+  const l = latest(w);
+  $("dTitle").textContent = w.title;
+  $("dTags").innerHTML = tagsHtml(w);
+  $("dDesc").textContent = w.description || "";
+  $("dDesc").hidden = !w.description;
+  $("dFacts").innerHTML = `
+    <div class="fact"><small>First build</small><span>${fmt(firstDate(w))}</span></div>
+    <div class="fact"><small>Latest version</small><span>${l ? `${esc(l.label)} · ${fmt(l.date)}` : "None yet"}</span></div>
+    <div class="fact"><small>Versions</small><span>${w.versions.length}</span></div>
+    <div class="fact"><small>Status</small><span>${esc(w.status)}</span></div>`;
+
+  const L = w.links, links = [];
+  const btn = (u, icon, label, cls = "ghost") => { const s = safeUrl(u); if (s) links.push(`<a class="btn ${cls}" href="${esc(s)}" target="_blank" rel="noopener">${ICON[icon]}${label}</a>`); };
+  btn(L.artifact, "art", "Open artifact", "accent");
+  btn(L.chat, "chat", "Open Claude chat");
+  btn(L.live, "live", "Live site");
+  btn(L.repo, "repo", "Project repo");
+  if (!w.example) links.push(`<a class="btn ghost" href="${GH_WEB}/commits/${BRANCH}/files/${encodeURIComponent(w.id)}" target="_blank" rel="noopener">${ICON.gh}File history on GitHub</a>`);
+  links.push(`<a class="btn ghost" href="${GH_WEB}/commits/${BRANCH}/${DATA_PATH}" target="_blank" rel="noopener">${ICON.hist}All edits</a>`);
+  $("dLinks").innerHTML = links.join("");
+
+  $("dEdit").innerHTML = `
+    <button class="btn" type="button" id="eVer">+ Add new version</button>
+    <button class="btn ghost" type="button" id="eEdit">Edit details</button>
+    <button class="btn danger" type="button" id="eDel">Delete</button>`;
+  $("eVer").onclick = () => needToken(() => openVersionForm(w));
+  $("eEdit").onclick = () => needToken(() => openWorkForm(w));
+  $("eDel").onclick = () => needToken(() => confirmDelete(w));
+
+  if (w.versions.length) showVersion(w.versions.length - 1);
+  else { $("pLabel").textContent = "No versions yet"; $("pName").textContent = ""; $("pBody").innerHTML = `<div class="nopreview">Add a version to keep a file or link here.</div>`; $("dVersions").innerHTML = ""; }
+  if (!$("detail").open) $("detail").showModal();
+  if (location.hash !== "#" + w.id) history.replaceState(null, "", "#" + w.id);
+}
+
+async function showVersion(i) {
+  const w = current, v = w.versions[i], isLatest = i === w.versions.length - 1;
+  $("pLabel").innerHTML = `<b>${esc(v.label)}</b> · ${fmt(v.date)}${isLatest ? ' · <span class="tag">Latest</span>' : ""}${v.note ? ` · ${esc(v.note)}` : ""}`;
+  $("pName").textContent = v.file ? v.file.split("/").pop().replace(/^\d{4}-\d{2}-\d{2}-[a-z0-9]+-/, "") : "";
+  const body = $("pBody");
+  const link = safeUrl(v.link);
+  const linkBtn = link ? `<a class="btn ghost" href="${esc(link)}" target="_blank" rel="noopener">Open version link</a>` : "";
+  if (v.file && IMG.test(v.file)) {
+    body.innerHTML = `<img src="${esc(fileUrl(v.file))}" alt="${esc(w.title)} ${esc(v.label)}">${linkBtn ? `<div class="nopreview">${linkBtn}</div>` : ""}`;
+    const img = body.querySelector("img"); img.onerror = () => { if (!img.src.startsWith(RAW)) img.src = rawUrl(v.file); };
+  } else if (v.file && TEXT.test(v.file)) {
+    body.innerHTML = `<pre>Loading…</pre>`;
+    let t = null;
+    for (const u of [fileUrl(v.file), rawUrl(v.file)]) { try { const r = await fetch(u); if (r.ok) { t = await r.text(); break; } } catch {} }
+    if (current !== w) return;
+    body.innerHTML = t !== null ? `<pre>${esc(t.length > 40000 ? t.slice(0, 40000) + "\n\n… (open the file to see the rest)" : t)}</pre>${linkBtn ? `<div class="nopreview">${linkBtn}</div>` : ""}`
+      : `<div class="nopreview">This file is still being published. Try again in a minute.<a class="btn ghost" href="${esc(GH_WEB)}/blob/${BRANCH}/${esc(v.file)}" target="_blank" rel="noopener">View on GitHub</a></div>`;
+  } else if (v.file) {
+    body.innerHTML = `<div class="nopreview">No inline preview for this file type.<a class="btn ghost" href="${esc(fileUrl(v.file))}" target="_blank" rel="noopener">Open file</a>${linkBtn}</div>`;
+  } else {
+    body.innerHTML = `<div class="nopreview">${link ? "This version is a link." : "No file or link saved for this version."}${linkBtn}</div>`;
+  }
+  $("dVersions").innerHTML = w.versions.map((x, j) => `
+    <li><button type="button" data-i="${j}" aria-current="${j === i}">
+      <span class="vl">${esc(x.label)}</span><span class="vd">${fmt(x.date)}</span><span class="vn">${esc(x.note || "")}</span>
+    </button></li>`).reverse().join("");
+  document.querySelectorAll("#dVersions button").forEach(b => b.onclick = () => showVersion(+b.dataset.i));
+}
+
+/* ---------- dialogs ---------- */
+document.querySelectorAll("dialog").forEach(d => {
+  d.addEventListener("click", e => { if (e.target === d || e.target.closest("[data-close]")) d.close(); });
+});
+$("detail").addEventListener("close", () => { current = null; if (location.hash) history.replaceState(null, "", location.pathname + location.search); });
+function openFromHash() { const id = location.hash.slice(1); if (id) openWork(id); }
+window.addEventListener("hashchange", openFromHash);
+
+function needToken(fn) { if (token) fn(); else { pendingAfterConnect = fn; openConnect(); } }
+let pendingAfterConnect = null;
+
+/* connect */
+function updateConn() {
+  $("connDot").classList.toggle("on", !!token);
+  $("connLabel").textContent = token ? "GitHub connected" : "Connect GitHub to edit";
+}
+function openConnect() {
+  $("cRepo").textContent = $("cRepo2").textContent = `${OWNER}/${REPO}`;
+  $("cToken").value = ""; $("cMsg").textContent = ""; $("cOut").hidden = !token;
+  $("connDlg").showModal();
+}
+$("connBtn").onclick = openConnect;
+$("cOut").onclick = () => { token = null; try { localStorage.removeItem(TOKEN_KEY); } catch {} updateConn(); $("connDlg").close(); toast("Disconnected. The token was removed from this browser."); };
+$("connForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = $("cToken").value.trim();
+  if (!t) { $("cMsg").textContent = "Paste your token first."; return; }
+  $("cSave").disabled = true; $("cMsg").textContent = "";
+  const prev = token; token = t;
+  try {
+    const repo = await gh("");
+    if (!repo.permissions || !repo.permissions.push) throw new Error("This token can read the repo but can't write to it. Give it Contents: Read and write.");
+    try { localStorage.setItem(TOKEN_KEY, t); } catch {}
+    updateConn(); $("connDlg").close(); toast("GitHub connected. You can add and edit work now.");
+    await load();
+    if (pendingAfterConnect) { const f = pendingAfterConnect; pendingAfterConnect = null; f(); }
+  } catch (err) { token = prev; $("cMsg").textContent = err.message; }
+  finally { $("cSave").disabled = false; }
+});
+
+/* add / edit work */
+let editing = null;
+function openWorkForm(w) {
+  editing = w || null;
+  $("wTitle").textContent = w ? "Edit details" : "Add work";
+  $("fTitle").value = w ? w.title : "";
+  $("fDate").value = w ? firstDate(w) : today();
+  $("fDate").max = "2100-12-31";
+  $("fStatus").value = w ? w.status : "In progress";
+  $("fCat").value = w ? (w.category || "") : "";
+  $("fTags").value = w ? w.tags.join(", ") : "";
+  $("fDesc").value = w ? (w.description || "") : "";
+  const L = w ? w.links : {};
+  $("fChat").value = L.chat || ""; $("fArtifact").value = L.artifact || ""; $("fLive").value = L.live || ""; $("fRepo").value = L.repo || "";
+  $("fPin").checked = w ? !!w.pinned : false;
+  $("fFile").value = ""; $("fNote").value = "";
+  ["firstVerTitle", "fFileWrap", "fNoteWrap"].forEach(id => $(id).hidden = !!w);
+  $("wMsg").textContent = "";
+  if ($("detail").open && !w) $("detail").close();
+  $("workDlg").showModal();
+  $("fTitle").focus();
+}
+$("addBtn").onclick = () => needToken(() => openWorkForm(null));
+
+function readLinks() {
+  const out = {}, bad = [];
+  [["chat","fChat","Claude chat link"],["artifact","fArtifact","Artifact link"],["live","fLive","Live site"],["repo","fRepo","Project repo"]].forEach(([k,id,name]) => {
+    const v = $(id).value.trim(); if (!v) return;
+    const s = safeUrl(v); if (s) out[k] = s; else bad.push(name);
+  });
+  return { out, bad };
+}
+
+$("workForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const title = $("fTitle").value.trim(), date = $("fDate").value;
+  if (!title) { $("wMsg").textContent = "Give the work a title."; return; }
+  if (!date) { $("wMsg").textContent = "Pick the first build date."; return; }
+  const { out: links, bad } = readLinks();
+  if (bad.length) { $("wMsg").textContent = `${bad.join(", ")} must be a full https:// link.`; return; }
+  const fields = {
+    title, firstDate: date, status: $("fStatus").value, category: $("fCat").value.trim(),
+    tags: $("fTags").value.split(",").map(t => t.trim()).filter(Boolean),
+    description: $("fDesc").value.trim(), links, pinned: $("fPin").checked
+  };
+  $("wSave").disabled = true; $("wMsg").textContent = "";
+  try {
+    if (editing) {
+      const id = editing.id;
+      toast("Saving to GitHub…", false, 0);
+      await commitChange(`Edit: ${title}`, data => { const w = data.find(x => x.id === id); if (w) Object.assign(w, fields); });
+      toast("Saved.");
+    } else {
+      const id = `${slug(title)}-${Date.now().toString(36).slice(-4)}`;
+      const file = $("fFile").files[0];
+      let path = null;
+      if (file) { toast("Uploading file…", false, 0); path = await uploadFile(id, file); }
+      toast("Saving to GitHub…", false, 0);
+      const v1 = { label: "v1", date, note: $("fNote").value.trim() || "First version" };
+      if (path) v1.file = path;
+      if (links.artifact) v1.link = links.artifact;
+      await commitChange(`Add: ${title}`, data => data.push({ id, ...fields, versions: [v1] }));
+      toast("Added to your timeline.");
+      const el = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    $("workDlg").close();
+  } catch (err) { $("wMsg").textContent = err.message; toast(err.message, true); }
+  finally { $("wSave").disabled = false; }
+});
+
+/* add version */
+let versionFor = null;
+function openVersionForm(w) {
+  versionFor = w;
+  const nums = w.versions.map(v => parseInt(String(v.label).replace(/\D/g, ""), 10)).filter(n => !isNaN(n));
+  $("vLabel").value = "v" + ((nums.length ? Math.max(...nums) : w.versions.length) + 1);
+  $("vDate").value = today(); $("vNote").value = ""; $("vFile").value = ""; $("vLink").value = ""; $("vMsg").textContent = "";
+  $("vTitle").textContent = `New version of ${w.title}`;
+  $("verDlg").showModal();
+}
+$("verForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const label = $("vLabel").value.trim(), date = $("vDate").value, file = $("vFile").files[0];
+  const linkRaw = $("vLink").value.trim(), link = linkRaw ? safeUrl(linkRaw) : null;
+  if (!label || !date) { $("vMsg").textContent = "Fill in the version and date."; return; }
+  if (linkRaw && !link) { $("vMsg").textContent = "The link must be a full https:// link."; return; }
+  $("vSave").disabled = true; $("vMsg").textContent = "";
+  const w = versionFor;
+  try {
+    let path = null;
+    if (file) { toast("Uploading file…", false, 0); path = await uploadFile(w.id, file); }
+    toast("Saving to GitHub…", false, 0);
+    const v = { label, date, note: $("vNote").value.trim() };
+    if (path) v.file = path; if (link) v.link = link;
+    await commitChange(`New version ${label}: ${w.title}`, data => {
+      const x = data.find(d => d.id === w.id); if (!x) return;
+      x.versions.push(v); x.versions.sort((a,b) => a.date.localeCompare(b.date));
+      if (link && /claude\.(ai|site)\/.*artifact|claude\.site\//.test(link)) x.links = { ...x.links, artifact: link };
+    });
+    $("verDlg").close(); toast(`${label} saved.`);
+  } catch (err) { $("vMsg").textContent = err.message; toast(err.message, true); }
+  finally { $("vSave").disabled = false; }
+});
+
+/* delete */
+function confirmDelete(w) {
+  $("qText").textContent = `“${w.title}” will be removed from the timeline. Its files and past versions stay in the GitHub history.`;
+  $("qYes").onclick = async () => {
+    $("qYes").disabled = true;
+    try { toast("Deleting…", false, 0); await commitChange(`Delete: ${w.title}`, data => { const i = data.findIndex(d => d.id === w.id); if (i > -1) data.splice(i, 1); }); $("confirmDlg").close(); $("detail").close(); toast("Deleted."); }
+    catch (err) { toast(err.message, true); }
+    finally { $("qYes").disabled = false; }
+  };
+  $("confirmDlg").showModal();
+}
+
+/* ---------- controls ---------- */
+$("sortBtn").onclick = e => { state.newestFirst = !state.newestFirst; e.currentTarget.textContent = state.newestFirst ? "Newest first" : "Oldest first"; render(); };
+$("search").addEventListener("input", e => { state.q = e.target.value; render(); });
+
+updateConn();
+load();
+</script>
+</body>
+</html>
