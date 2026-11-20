@@ -1,36 +1,5 @@
 [
   {
-    "id": "example-brand",
-    "example": true,
-    "title": "Brand logo concepts",
-    "category": "Design",
-    "description": "Logo explorations for a side project. Three rounds of colour and sizing changes.",
-    "versions": [
-      {
-        "label": "v1",
-        "date": "2026-09-04",
-        "file": "files/example-brand/logo-v1.svg",
-        "note": "First sketch, blue mark"
-      },
-      {
-        "label": "v2",
-        "date": "2026-09-18",
-        "file": "files/example-brand/logo-v2.svg",
-        "note": "Switched to green, larger mark"
-      },
-      {
-        "label": "v3",
-        "date": "2026-10-02",
-        "file": "files/example-brand/logo-v3.svg",
-        "note": "Final orange version"
-      }
-    ],
-    "firstDate": "2026-09-04",
-    "status": "Done",
-    "tags": [],
-    "links": {}
-  },
-  {
     "id": "example-notes",
     "example": true,
     "title": "Onboarding research notes",
