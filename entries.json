@@ -1,30 +1,5 @@
 [
   {
-    "id": "example-notes",
-    "example": true,
-    "title": "Onboarding research notes",
-    "category": "Research",
-    "description": "Notes from user interviews about the signup flow.",
-    "versions": [
-      {
-        "label": "v1",
-        "date": "2026-10-11",
-        "file": "files/example-notes/notes-v1.md",
-        "note": "First 5 interviews"
-      },
-      {
-        "label": "v2",
-        "date": "2026-10-25",
-        "file": "files/example-notes/notes-v2.md",
-        "note": "Added prototype test results"
-      }
-    ],
-    "firstDate": "2026-10-11",
-    "status": "Done",
-    "tags": [],
-    "links": {}
-  },
-  {
     "id": "feynman-lab-nv78",
     "title": "Feynman Lab",
     "firstDate": "2026-11-16",
