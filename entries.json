@@ -53,9 +53,7 @@
     "firstDate": "2026-10-11",
     "status": "Done",
     "tags": [],
-    "links": {
-      
-    }
+    "links": {}
   },
   {
     "id": "example-script",
@@ -75,5 +73,30 @@
     "status": "In progress",
     "tags": [],
     "links": {}
+  },
+  {
+    "id": "feynman-lab-nv78",
+    "title": "Feynman Lab",
+    "firstDate": "2026-11-16",
+    "status": "Done",
+    "category": "Research",
+    "tags": [
+      "Physics",
+      "learning"
+    ],
+    "description": "Learn physics the Feynman way\nA free app built on Richard Feynman's books Six Easy Pieces and Six Not-So-Easy Pieces.\n* Guess first, then try it in a live simulation\n* Short, clear explanations, one step at a time\n* 3D views you can turn with your finger\n* Change the laws of nature and see what happens\n* Lessons read aloud in natural voices\n* Daily thinking questions on your phone\n* Lessons come back for review so you remember",
+    "links": {
+      "chat": "https://claude.ai/chat/23616578-c739-4547-862d-f65c3e951b0e",
+      "live": "https://feynman-lab-ebon.vercel.app/#",
+      "repo": "https://github.com/manoj7019/feynman-lab"
+    },
+    "pinned": false,
+    "versions": [
+      {
+        "label": "v1",
+        "date": "2026-11-16",
+        "note": "First version"
+      }
+    ]
   }
 ]
