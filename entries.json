@@ -47,5 +47,30 @@
         "link": "https://claude.ai/chat/d1931a00-00c7-4fb1-86e5-a85a53a70417?artifact=dbf683e8-48a7-401f-8e50-39381f6d12d1"
       }
     ]
+  },
+  {
+    "id": "boringclimatetalks-in-0qqo",
+    "title": "Boringclimatetalks.in",
+    "firstDate": "2026-11-14",
+    "status": "In progress",
+    "category": "Design",
+    "tags": [
+      "GPS",
+      "Company"
+    ],
+    "description": "Theme: Atomic Design 2.0 by GPS Renewables\nWebsite: The Boring Climate Assembly, Bengaluru edition",
+    "links": {
+      "chat": "https://claude.ai/chat/87810c7e-14d3-4d58-bd87-e00a675c92f0?artifact=198b559e-42d1-41db-a6c9-b09b725650a5",
+      "live": "https://boringclimatetalks.in/"
+    },
+    "pinned": false,
+    "versions": [
+      {
+        "label": "v1",
+        "date": "2026-11-14",
+        "note": "First version",
+        "file": "files/boringclimatetalks-in-0qqo/2026-11-20-mwoz0qqp-atomic-design-2.0-cover.png"
+      }
+    ]
   }
 ]
