@@ -25,25 +25,6 @@
     "links": {}
   },
   {
-    "id": "example-script",
-    "example": true,
-    "title": "Export cleanup script",
-    "category": "Code",
-    "description": "Small Python script that sorts exported files into dated folders.",
-    "versions": [
-      {
-        "label": "v1",
-        "date": "2026-11-14",
-        "file": "files/example-script/cleanup.py",
-        "note": "Initial version"
-      }
-    ],
-    "firstDate": "2026-11-14",
-    "status": "In progress",
-    "tags": [],
-    "links": {}
-  },
-  {
     "id": "feynman-lab-nv78",
     "title": "Feynman Lab",
     "firstDate": "2026-11-16",
